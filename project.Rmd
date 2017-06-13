@@ -1,0 +1,111 @@
+---
+title: "project"
+author: "Linshan"
+date: "6/11/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Project
+
+## Obtain Dataset
+```{r data}
+setwd("~/Documents/Coursera/Data Science/Practical Machine Learning/project")
+train_url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+train_filename <- "pml-train.csv"
+test_filename <- "pml-testing.csv"
+
+if(!file.exists(train_filename)){
+    download.file(train_url, destfile = train_filename)
+}
+if(!file.exists(test_filename)){
+    download.file(test_url, destfile = test_filename)
+}
+
+mydata <- read.csv(train_filename)
+```
+
+## Set up for validation set
+
+You can also embed plots, for example:
+
+```{r crossValidation, warning = FALSE}
+library(caret)
+
+# setting the seed
+set.seed(1000)
+
+# split data into 25% for testing
+inTrain <- createDataPartition(y = mydata$classe, p =0.75, list = FALSE)
+training <- mydata[inTrain, ]
+testing <- mydata[-inTrain, ]
+
+```
+
+## Data Clean-up
+First, remove columns representing identification which are not accelerometer measurements: i.e. the first seven columns
+
+```{r cleanup, warning = FALSE}
+colToRemove <- c(1:7)
+```
+
+
+Then remove variables that has near zero variance
+
+```{r cleanup2, warning = FALSE}
+nzv <- nearZeroVar(training, saveMetrics = TRUE)
+nzv[nzv[, "zeroVar"] == TRUE, ]
+```
+There are no zeo-variance variables
+
+
+
+Summarize training set to see whether other columns need to be removed
+```{r, message=F, warning=F, results="hide"}
+
+summary(training[, - colToRemove])
+```
+
+Any columns with more than half of the values empty or NA should be excluded and add to colToRemove
+
+```{r }
+colNA <- which(colSums(is.na(training)) > nrow(training)/2)
+colNone <- which(colSums(training == "") > nrow(training)/2)
+
+colToRemove <- unique(c(colToRemove, colNA, colNone))
+length(colToRemove)
+```
+
+remove these 107 variables and left with 52 variables
+```{r}
+training <- training[, -colToRemove]
+testing <- testing[, -colToRemove]
+```
+
+## Training with Random Forest
+```{r}
+library(randomForest)
+modelFit <- randomForest(classe ~ ., data = training)
+```
+
+## Estimate the out-of-sample error
+```{r}
+pred <- predict(modelFit, testing)
+CMatrix <- confusionMatrix(testing$classe, pred)
+CMatrix
+```
+This model produce a out-of-sample accurarcy of 99.69%
+
+## Predict with Testing set
+```{r}
+test_pts <- read.csv(test_filename)
+test_pts <- test_pts[, -colToRemove]
+
+pred_result <- predict(modelFit, test_pts)
+pred_result
+```
