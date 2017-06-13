@@ -1,3 +1,6 @@
 # practical_machine_learning
 
-Report also published in RPubs: file://localhost/Users/linshanli/Documents/Coursera/Data%20Science/Practical%20Machine%20Learning/project/project.html
+
+project.htm is the report created from project.Rmd
+
+Report also published in RPubs: http://rpubs.com/zgtjlls/284291
